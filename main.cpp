@@ -119,18 +119,3 @@ public:
         return os;
     }
 };
-
-int main() {
-    int n,borr;
-    std::cin >> n >> borr;
-    linked_list<int> lista;
-    for (int i = 0; i < n; i++) {
-        int val;
-        std::cin >> val;
-        lista.push_back(val);
-    }
-    lista.remove_all(borr);
-    std::cout << lista.size()<< "⁄n";
-    lista.print();
-    return 0;
-}
