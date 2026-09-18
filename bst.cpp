@@ -1,4 +1,6 @@
 #include <iostream>
+#include <string>
+
 using namespace std;
 
 template <class K, class V>
@@ -10,6 +12,7 @@ private:
         int level;
         node * left = nullptr;
         node * right = nullptr;
+        node * parent = nullptr;
 
         node(const K& k, const V& v, int lvl) : key(k), value(v), level(lvl){}
     };
@@ -35,12 +38,37 @@ private:
 
         return search_recursive(current->right, target);
     }
-    void in_order_recursive(node* current) const {
+
+    void in_order_recursive_format(node* current, bool& first) const {
         if (current == nullptr) return;
 
-        in_order_recursive(current->left);
-        cout << current->key << " ";
-        in_order_recursive(current->right);
+        in_order_recursive_format(current->left, first);
+
+        if (!first) cout << " ";
+        cout << current->key;
+        first = false;
+
+        in_order_recursive_format(current->right, first);
+    }
+
+    void transplant(node* u, node* v) {
+        if (u->parent == nullptr) {
+            root = v;
+        } else if (u == u->parent->left) {
+            u->parent->left = v;
+        } else {
+            u->parent->right = v;
+        }
+        if (v != nullptr) {
+            v->parent = u->parent;
+        }
+    }
+
+    node* tree_minimum(node* x) const {
+        while (x->left != nullptr) {
+            x = x->left;
+        }
+        return x;
     }
 
     void pre_order_recursive(node* current) const {
@@ -59,7 +87,6 @@ private:
         cout << current->key << " ";
     }
 
-
 public:
     BST() = default;
 
@@ -68,24 +95,62 @@ public:
     }
 
     bool insert(const K& key, const V& value = V()) {
-        node **current = &root;
+        node *y = nullptr;
+        node *x = root;
         int current_level = 0;
-        while (*current != nullptr) {
-            if (key == (*current)->key) return false;
-            if (key < (*current)->key) {
-                current = &((*current)->left);
+
+        while (x != nullptr) {
+            y = x;
+            if (key == x->key) return false;
+            if (key < x->key) {
+                x = x->left;
             } else {
-                current = &((*current)->right);
+                x = x->right;
             }
             current_level++;
         }
-        *current = new node(key, value, current_level);
+
+        node *z = new node(key, value, current_level);
+        z->parent = y;
+
+        if (y == nullptr) {
+            root = z;
+        } else if (z->key < y->key) {
+            y->left = z;
+        } else {
+            y->right = z;
+        }
+
         tree_height = max(tree_height, current_level);
         return true;
     }
+
+    void remove(const K& key) {
+        node* z = search(key);
+        if (z == nullptr) return;
+
+        if (z->left == nullptr) {
+            transplant(z, z->right);
+        } else if (z->right == nullptr) {
+            transplant(z, z->left);
+        } else {
+            node* y = tree_minimum(z->right);
+            if (y->parent != z) {
+                transplant(y, y->right);
+                y->right = z->right;
+                y->right->parent = y;
+            }
+            transplant(z, y);
+            y->left = z->left;
+            y->left->parent = y;
+        }
+        delete z;
+    }
+
     int height() const {
         return tree_height;
     }
+
     int level(const K& target) const {
         node* current = root;
         while (current != nullptr) {
@@ -94,7 +159,9 @@ public:
             }
             if (target < current->key) {
                 current = current->left;
-            } else {current = current->right;}
+            } else {
+                current = current->right;
+            }
         }
         return -1;
     }
@@ -104,7 +171,12 @@ public:
     }
 
     void in_order() const {
-        in_order_recursive(root);
+        if (root == nullptr) {
+            cout << "VACIO\n";
+            return;
+        }
+        bool first = true;
+        in_order_recursive_format(root, first);
         cout << "\n";
     }
 
@@ -125,5 +197,30 @@ public:
             return true;
         }
         return false;
+    }
+
+    void floor_ceiling(const K& target, K& floor_val, K& ceil_val, bool& has_floor, bool& has_ceil) const {
+        has_floor = false;
+        has_ceil = false;
+        node* current = root;
+
+        while (current != nullptr) {
+            if (current->key == target) {
+                floor_val = current->key;
+                ceil_val = current->key;
+                has_floor = true;
+                has_ceil = true;
+                return;
+            }
+            if (current->key < target) {
+                floor_val = current->key;
+                has_floor = true;
+                current = current->right;
+            } else {
+                ceil_val = current->key;
+                has_ceil = true;
+                current = current->left;
+            }
+        }
     }
 };
